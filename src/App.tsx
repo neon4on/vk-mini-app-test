@@ -3,37 +3,23 @@ import bridge, { UserInfo } from '@vkontakte/vk-bridge';
 import {
   View,
   Panel,
-  PanelHeader,
-  Group,
-  Cell,
-  Avatar,
-  Button,
-  Div,
-  Text,
-  PanelHeaderButton,
   ScreenSpinner,
   AdaptivityProvider,
   AppRoot,
   ConfigProvider,
   SplitLayout,
   SplitCol,
-  useAdaptivity,
-  ViewWidth,
 } from '@vkontakte/vkui';
-import {
-  Icon28MoonOutline,
-  Icon28SunOutline,
-  Icon28LogoVkColor,
-  Icon28LogoVkOutline,
-} from '@vkontakte/icons';
 import '@vkontakte/vkui/dist/vkui.css';
+import Profile from './Profile';
+import Flashlight from './Flashlight';
 
 const App: React.FC = () => {
-  const [activePanel, setActivePanel] = useState('home');
+  const [activePanel, setActivePanel] = useState<string>('home');
   const [fetchedUser, setUser] = useState<UserInfo | null>(null);
   const [popout, setPopout] = useState<React.ReactNode | null>(<ScreenSpinner size="large" />);
-  const [theme, setTheme] = useState('light');
-  const { viewWidth } = useAdaptivity();
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [isFlashlightOn, setIsFlashlightOn] = useState<boolean>(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -49,16 +35,25 @@ const App: React.FC = () => {
     fetchData();
   }, []);
 
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+  const toggleTheme = (): void => {
+    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
-  const openProfile = () => {
+  const openProfile = (): void => {
     if (fetchedUser) {
       bridge
         .send('VKWebAppOpenProfile', { user_id: fetchedUser.id })
         .then(() => console.log('Profile opened successfully'))
         .catch((error) => console.error('Failed to open profile:', error));
+    }
+  };
+
+  const toggleFlashlight = async (): Promise<void> => {
+    try {
+      await bridge.send('VKWebAppFlashSetLevel', { level: isFlashlightOn ? 0 : 1 });
+      setIsFlashlightOn((prevState) => !prevState);
+    } catch (error) {
+      console.error('Failed to toggle flashlight:', error);
     }
   };
 
@@ -69,52 +64,14 @@ const App: React.FC = () => {
           <SplitLayout popout={popout}>
             <SplitCol>
               <View activePanel={activePanel}>
-                <Panel id="home">
-                  <PanelHeader
-                    before={
-                      <PanelHeaderButton onClick={toggleTheme}>
-                        {theme === 'light' ? <Icon28MoonOutline /> : <Icon28SunOutline />}
-                      </PanelHeaderButton>
-                    }>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: '50%',
-                        top: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}>
-                      {theme === 'light' ? <Icon28LogoVkColor /> : <Icon28LogoVkOutline />}
-                      <span style={{ marginLeft: '4px' }}>UI</span>
-                    </div>
-                  </PanelHeader>
-                  {fetchedUser && (
-                    <Group>
-                      <Div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          textAlign: 'center',
-                        }}>
-                        <Avatar
-                          src={fetchedUser.photo_200}
-                          size={100}
-                          style={{ marginBottom: 20 }}
-                        />
-                        <Text weight="medium" style={{ marginBottom: 8 }}>
-                          {`${fetchedUser.first_name} ${fetchedUser.last_name}`}
-                        </Text>
-                        {fetchedUser.city && (
-                          <Text style={{ marginBottom: 8 }}>{fetchedUser.city.title}</Text>
-                        )}
-                        <Button onClick={openProfile} size="m">
-                          Перейти в профиль
-                        </Button>
-                      </Div>
-                    </Group>
-                  )}
+                <Panel id="home" separator={false}>
+                  <Profile
+                    user={fetchedUser}
+                    onOpenProfile={openProfile}
+                    theme={theme}
+                    toggleTheme={toggleTheme}
+                  />
+                  <Flashlight isOn={isFlashlightOn} toggle={toggleFlashlight} />
                 </Panel>
               </View>
             </SplitCol>
