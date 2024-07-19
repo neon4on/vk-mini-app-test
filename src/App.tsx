@@ -9,13 +9,19 @@ import {
   ConfigProvider,
   SplitLayout,
   SplitCol,
+  Epic,
+  PanelHeader,
 } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
 import Profile from './Profile';
 import Flashlight from './Flashlight';
+import Friends from './Friends';
+import AllFriends from './AllFriends';
+import Tabs from './Tabs';
 
 const App: React.FC = () => {
-  const [activePanel, setActivePanel] = useState<string>('home');
+  const [activePanel, setActivePanel] = useState<string>('profile');
+  const [activeTab, setActiveTab] = useState<string>('profile');
   const [fetchedUser, setUser] = useState<UserInfo | null>(null);
   const [popout, setPopout] = useState<React.ReactNode | null>(<ScreenSpinner size="large" />);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -57,23 +63,50 @@ const App: React.FC = () => {
     }
   };
 
+  const goToAllFriends = (): void => {
+    setActivePanel('allFriends');
+  };
+
+  const goBack = (): void => {
+    setActivePanel('profile');
+  };
+
+  const onTabChange = (tab: string): void => {
+    setActiveTab(tab);
+    setActivePanel(tab);
+  };
+
   return (
     <ConfigProvider appearance={theme}>
       <AdaptivityProvider>
         <AppRoot>
           <SplitLayout popout={popout}>
             <SplitCol>
-              <View activePanel={activePanel}>
-                <Panel id="home" separator={false}>
-                  <Profile
-                    user={fetchedUser}
-                    onOpenProfile={openProfile}
-                    theme={theme}
-                    toggleTheme={toggleTheme}
-                  />
-                  <Flashlight isOn={isFlashlightOn} toggle={toggleFlashlight} />
-                </Panel>
-              </View>
+              <Epic
+                activeStory={activeTab}
+                tabbar={<Tabs activeTab={activeTab} onChange={onTabChange} />}>
+                <View id="profile" activePanel={activePanel}>
+                  <Panel id="profile">
+                    <Profile
+                      user={fetchedUser}
+                      onOpenProfile={openProfile}
+                      theme={theme}
+                      toggleTheme={toggleTheme}
+                    />
+                    <Flashlight isOn={isFlashlightOn} toggle={toggleFlashlight} />
+                    <Friends onShowAllFriends={goToAllFriends} />
+                  </Panel>
+                  <Panel id="allFriends">
+                    <AllFriends onBack={goBack} />
+                  </Panel>
+                </View>
+                <View id="placeholder" activePanel="placeholder">
+                  <Panel id="placeholder">
+                    <PanelHeader>Placeholder</PanelHeader>
+                    <div>This is a placeholder for another tab</div>
+                  </Panel>
+                </View>
+              </Epic>
             </SplitCol>
           </SplitLayout>
         </AppRoot>
